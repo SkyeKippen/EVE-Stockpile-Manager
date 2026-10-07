@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{{template "head"}}
+</head>
+<body>
+
+{{template "header" "home"}}
+
+<main class="page">
+    <div class="page-head">
+        <h2>Welcome</h2>
+    </div>
+
+    <section class="card">
+    {{if .LoggedIn}}
+        <div class="pilot-card">
+            <img class="portrait" src="/image?category=characters&id={{.CharacterID}}&size=128"
+                 alt="" width="64" height="64">
+            <p class="muted">Logged in as <strong class="pilot">{{.CharacterName}}</strong></p>
+        </div>
+        <div class="actions">
+            <form action="/auth/logout" method="post">
+                <button class="btn btn-secondary" type="submit">Log out</button>
+            </form>
+        </div>
+    {{else if .SSOConfigured}}
+        <p class="muted">Sign in with your EVE Online character to manage your stockpiles. EVE will ask you to allow the app to read your assets, industry jobs, market orders and structures, for your character and corporation.</p>
+        {{template "sso-login"}}
+    {{else}}
+        <p class="muted">EVE Online sign-in isn't set up yet. Copy <code>config/.env.example</code> to <code>config/.env</code>, fill in your EVE developer app details, then restart the server.</p>
+    {{end}}
+    </section>
+</main>
+
+</body>
+</html>

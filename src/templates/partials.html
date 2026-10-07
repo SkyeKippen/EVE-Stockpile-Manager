@@ -1,0 +1,30 @@
+{{define "head"}}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MWHI Stockpile Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/static/style.css">
+{{end}}
+
+{{define "header"}}
+<header class="banner">
+    <div class="banner-inner">
+        <a class="brand" href="/">MWHI Stockpile Manager</a>
+        <span class="banner-tagline">Powered by MWHI Servers</span>
+        <nav>
+            <a href="/"{{if eq . "home"}} class="active"{{end}}>Home</a>
+        </nav>
+    </div>
+</header>
+{{end}}
+
+{{/* sso-login is the EVE Online sign-in button. It asks for every scope
+     in ESI_SCOPES, with no scopes to pick. */}}
+{{define "sso-login"}}
+        <a class="sso-login" href="/auth/login">
+            <img src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png"
+                 alt="Log in with EVE Online" width="195" height="30">
+        </a>
+{{end}}
