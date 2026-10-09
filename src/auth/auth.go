@@ -141,8 +141,16 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt:     tok.ExpiresAt,
 	})
 
+	if OnSignIn != nil {
+		go OnSignIn(characterID, characterName)
+	}
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
+
+// OnSignIn, when set, runs in the background after each sign-in, once the
+// character's token is saved.
+var OnSignIn func(characterID int64, characterName string)
 
 // requestedScopes returns the scopes to send to EVE SSO: RequiredScope plus
 // anything else ESI_SCOPES lists.

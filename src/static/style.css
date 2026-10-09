@@ -493,3 +493,79 @@ code {
     border-radius: var(--radius);
     border: 1px solid var(--line);
 }
+
+/* Suggestions under an autocomplete field (see autocomplete.js) */
+.autocomplete { position: relative; }
+
+.autocomplete-list {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.autocomplete-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.autocomplete-list li.active { background: var(--ink-soft); }
+
+.autocomplete-list li.autocomplete-empty {
+    color: var(--muted);
+    cursor: default;
+}
+
+.autocomplete-detail {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Pop-up dialog holding a form */
+.modal {
+    width: min(520px, calc(100vw - 32px));
+    padding: 24px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--ink);
+    border-radius: var(--radius);
+}
+
+.modal::backdrop { background: rgba(0, 0, 0, 0.55); }
+
+.modal h3 { margin-bottom: 12px; }
+
+.modal .actions { justify-content: flex-end; }
+
+.hint {
+    margin: 4px 0 0;
+    font-size: 12px;
+}
+
+/* A message across the top of a page */
+.notice {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--pending);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.notice-good { border-left-color: var(--good); }
+.notice-bad { border-left-color: var(--bad); }

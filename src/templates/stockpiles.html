@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{{template "head"}}
+    <link rel="stylesheet" href="/static/stockpiles.css">
+</head>
+<body>
+
+{{template "header" "stockpiles"}}
+
+<main class="page">
+    <div class="page-head">
+        <h2>Stockpiles</h2>
+        <div class="actions page-head-actions">
+            <form action="/stockpiles/structures/refresh" method="post">
+                <button class="btn btn-secondary" type="submit"
+                        title="Look up the stations and structures where {{.CharacterName}} or their corporation has assets, so they can be picked for a stockpile">Refresh my locations</button>
+            </form>
+            <button class="btn btn-primary" type="button" data-open-dialog="new-stockpile">New Stockpile</button>
+        </div>
+    </div>
+
+    {{if not .Saved}}<p class="notice">No database is set up, so stockpiles are lost when the server restarts. Set <code>DATABASE_URL</code> in <code>config/.env</code> to keep them.</p>{{end}}
+    {{if .Message}}<p class="notice notice-good" role="status">{{.Message}}</p>{{end}}
+    {{if .Error}}<p class="notice notice-bad" role="alert">{{.Error}}</p>{{end}}
+
+    {{if not .Stockpiles}}
+    <section class="card">
+        <p class="muted">No stockpiles yet. Use <strong>New Stockpile</strong> to make one.</p>
+    </section>
+    {{else}}
+    <div class="table-wrap">
+        <div class="stockpile-list" role="table" aria-label="Stockpiles">
+            <div class="stockpile-row stockpile-head" role="row">
+                <span role="columnheader">Stockpile</span>
+                <span role="columnheader">Structure</span>
+                <span role="columnheader">System</span>
+                <span role="columnheader" class="num">Items</span>
+            </div>
+            {{range .Stockpiles}}
+            <details class="stockpile" id="stockpile-{{.StockpileId}}"{{if eq .StockpileId $.Open}} open{{end}}>
+                <summary class="stockpile-row" role="row">
+                    <span role="cell" class="stockpile-name">{{.Name}}</span>
+                    <span role="cell">{{.Structure.Name}}</span>
+                    <span role="cell">{{.Structure.System}} <span class="unit">{{.Structure.Region}}</span></span>
+                    <span role="cell" class="num">{{len .Items}}</span>
+                </summary>
+                <div class="stockpile-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Type</th>
+                                <th class="num">Wanted</th>
+                                <th class="num" title="How many are at {{.Structure.Name}} now, in your hangars and your corporation's">In Station</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{$stockpileId := .StockpileId}}
+                        {{range .Items}}
+                            <tr>
+                                <td>
+                                    <span class="item-name">
+                                        <img src="/image?category=types&id={{.TypeId}}&variation={{if eq .Kind $.KindRuns}}bp{{else}}icon{{end}}&size=64"
+                                             alt="" width="32" height="32" loading="lazy">
+                                        {{.Name}}
+                                    </span>
+                                </td>
+                                <td>{{if eq .Kind $.KindRuns}}<span class="badge badge-kind badge-runs">Blueprint Runs</span>{{else}}<span class="badge badge-kind">Item</span>{{end}}</td>
+                                <td class="num">{{commaInt .Quantity}} <span class="unit">{{if eq .Kind $.KindRuns}}runs{{else}}units{{end}}</span></td>
+                                <td class="num stock-count" data-count-key="{{$stockpileId}}-{{.TypeId}}" data-wanted="{{.Quantity}}"
+                                    {{- if eq .Kind $.KindRuns}} data-runs{{end}}><span class="muted">Loading…</span></td>
+                                <td class="row-action">
+                                    <form action="/stockpiles/items/remove" method="post">
+                                        <input type="hidden" name="stockpile_id" value="{{$stockpileId}}">
+                                        <input type="hidden" name="stockpile_item_id" value="{{.StockpileItemId}}">
+                                        <button class="btn btn-bad btn-sm" type="submit">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {{else}}
+                            <tr><td class="empty" colspan="5">Nothing in this stockpile yet.</td></tr>
+                        {{end}}
+                        </tbody>
+                    </table>
+                    <p class="muted hint count-note" hidden></p>
+                    <div class="actions stockpile-actions">
+                        <button class="btn btn-primary btn-sm" type="button" data-open-dialog="add-item"
+                                data-stockpile-id="{{.StockpileId}}" data-stockpile-name="{{.Name}}">Add Item</button>
+                        <span class="muted">At {{.Structure.Name}}, created by {{.CreatedByName}}</span>
+                        <form class="actions-end" action="/stockpiles/delete" method="post"
+                              onsubmit="return confirm('Delete the stockpile ' + this.dataset.name + ' and everything in it?')" data-name="{{.Name}}">
+                            <input type="hidden" name="stockpile_id" value="{{.StockpileId}}">
+                            <button class="btn btn-bad btn-sm" type="submit">Delete Stockpile</button>
+                        </form>
+                    </div>
+                </div>
+            </details>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</main>
+
+<dialog class="modal" id="new-stockpile" aria-labelledby="new-stockpile-title">
+    <form class="form" action="/stockpiles/create" method="post">
+        <h3 id="new-stockpile-title">New Stockpile</h3>
+
+        <label for="stockpile-name">Name</label>
+        <input type="text" id="stockpile-name" name="name" maxlength="100" placeholder="e.g. Fuel Blocks" required>
+
+        <label for="stockpile-structure">Station or Structure</label>
+        <div class="autocomplete">
+            <input type="text" id="stockpile-structure" placeholder="Type 3 or more letters of the station or structure name" required
+                   autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="stockpile-structure-suggestions"
+                   data-suggest="/stockpiles/structure-suggestions" data-value-input="stockpile-structure-id">
+            <ul class="autocomplete-list" id="stockpile-structure-suggestions" role="listbox" hidden></ul>
+        </div>
+        <input type="hidden" id="stockpile-structure-id" name="structure_id">
+        <p class="muted hint">Lists stations and structures where someone who signed in, or their corporation, has assets. Missing one? Use <strong>Refresh my locations</strong>.</p>
+
+        <div class="actions">
+            <button class="btn btn-secondary" type="button" data-close-dialog>Cancel</button>
+            <button class="btn btn-primary" type="submit">Create Stockpile</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="add-item" aria-labelledby="add-item-title">
+    <form class="form" action="/stockpiles/items/add" method="post">
+        <h3 id="add-item-title">Add Item</h3>
+        <p class="muted">To <strong id="add-item-stockpile"></strong></p>
+        <input type="hidden" name="stockpile_id" id="add-item-stockpile-id">
+
+        <div class="kind-toggle" role="radiogroup" aria-label="What to add">
+            <input type="radio" id="kind-item" name="kind" value="{{.KindItem}}" checked>
+            <label for="kind-item" class="btn btn-secondary">Item</label>
+            <input type="radio" id="kind-runs" name="kind" value="{{.KindRuns}}">
+            <label for="kind-runs" class="btn btn-secondary">Blueprint Runs</label>
+        </div>
+
+        <label for="add-item-type" id="add-item-type-label">Item</label>
+        <div class="autocomplete">
+            <input type="text" id="add-item-type" placeholder="Type 3 or more letters of the item name" required
+                   autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="add-item-suggestions"
+                   data-suggest="/stockpiles/item-suggestions" data-value-input="add-item-type-id">
+            <ul class="autocomplete-list" id="add-item-suggestions" role="listbox" hidden></ul>
+        </div>
+        <input type="hidden" id="add-item-type-id" name="type_id">
+
+        <label for="add-item-quantity" id="add-item-quantity-label">Quantity wanted</label>
+        <input type="text" id="add-item-quantity" name="quantity" required
+               pattern="\s*[0-9][0-9,]*(\.[0-9]*)?\s*[kKmMbB]?\s*" title="Whole number, e.g. 100, 1,200 or 1.2k"
+               placeholder="Formats Accepted: 1200 | 1,200 | 1.2k">
+        <p class="muted hint">Adding something the stockpile already has changes the amount wanted.</p>
+
+        <div class="actions">
+            <button class="btn btn-secondary" type="button" data-close-dialog>Cancel</button>
+            <button class="btn btn-primary" type="submit">Add to Stockpile</button>
+        </div>
+    </form>
+</dialog>
+
+<script src="/static/autocomplete.js"></script>
+<script src="/static/stockpiles.js"></script>
+</body>
+</html>
