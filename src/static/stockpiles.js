@@ -54,13 +54,41 @@
         });
     });
 
-    function showCount(cell, count, unitText, wanted) {
-        cell.textContent = count.toLocaleString("en-US") + " ";
+    function withUnit(cell, n, unitText) {
+        cell.textContent = n.toLocaleString("en-US") + " ";
         const unit = document.createElement("span");
         unit.className = "unit";
         unit.textContent = unitText;
         cell.appendChild(unit);
+    }
+
+    function showCount(cell, count, unitText, wanted) {
+        withUnit(cell, count, unitText);
+        cell.dataset.sortValue = count;
         cell.classList.add(count >= wanted ? "stock-met" : "stock-short");
+        showProgress(cell, Math.max(wanted - count, 0), unitText, wanted > 0 ? count / wanted : 1);
+    }
+
+    // Fills in the Missing and Level cells next to an In Station cell.
+    // fraction is how much of Wanted is in station; the bar stops at full,
+    // but the percent shows any extra, e.g. 130%.
+    function showProgress(cell, missing, unitText, fraction) {
+        const row = cell.closest("tr");
+        const missingCell = row.querySelector(".missing-cell");
+        withUnit(missingCell, missing, unitText);
+        missingCell.dataset.sortValue = missing;
+        missingCell.classList.toggle("stock-short", missing > 0);
+        missingCell.classList.toggle("muted", missing === 0);
+
+        const level = row.querySelector(".level");
+        level.parentElement.dataset.sortValue = fraction;
+        const filled = Math.min(fraction, 1);
+        const fill = level.querySelector(".level-fill");
+        fill.style.width = (filled * 100) + "%";
+        // red at empty, through amber, to green at full
+        fill.style.backgroundColor = "hsl(" + Math.round(filled * 120) + ", 70%, 45%)";
+        level.querySelector(".level-percent").textContent = Math.floor(fraction * 100) + "%";
+        level.hidden = false;
     }
 
     // Fill in the In Station column. Counts come from ESI assets, which can
@@ -86,6 +114,9 @@
                                 ? "An original is here, plus " + found.runs.toLocaleString("en-US") + " runs on copies"
                                 : "An original is here";
                             cell.classList.add("stock-met");
+                            // an original outranks any number of runs
+                            cell.dataset.sortValue = Number.MAX_SAFE_INTEGER;
+                            showProgress(cell, 0, "runs", 1);
                             return;
                         }
                         showCount(cell, found.runs, "runs", wanted);
@@ -110,7 +141,55 @@
                     unavailable.title = "Couldn't read assets from ESI. Reload to try again.";
                     unavailable.textContent = "Unavailable";
                     cell.replaceChildren(unavailable);
+                    cell.closest("tr").querySelector(".missing-cell").textContent = "";
                 });
             });
     }
+
+    // Click a column heading to sort that stockpile's table by it: ascending
+    // first, then descending on the next click. Tables start sorted by item
+    // name, which is how the server lists them. Rows still loading their
+    // counts sort as if empty.
+    const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+
+    function sortValue(row, column, type) {
+        const cell = row.cells[column];
+        const raw = cell.dataset.sortValue !== undefined ? cell.dataset.sortValue : cell.textContent.trim();
+        return type === "number" ? (Number(raw) || 0) : raw;
+    }
+
+    document.querySelectorAll("table.sortable").forEach(function (table) {
+        const headers = table.querySelectorAll("th[data-sort]");
+        headers.forEach(function (th) {
+            // a button inside the heading makes it reachable by keyboard
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "sort-button";
+            button.append(...th.childNodes);
+            th.appendChild(button);
+
+            button.addEventListener("click", function () {
+                const ascending = th.getAttribute("aria-sort") !== "ascending";
+                headers.forEach(function (other) { other.removeAttribute("aria-sort"); });
+                th.setAttribute("aria-sort", ascending ? "ascending" : "descending");
+
+                const column = th.cellIndex;
+                const type = th.dataset.sort;
+                const body = table.tBodies[0];
+                const rows = Array.from(body.rows).filter(function (row) { return !row.querySelector("td.empty"); });
+                rows.sort(function (a, b) {
+                    const x = sortValue(a, column, type);
+                    const y = sortValue(b, column, type);
+                    let order = type === "number" ? x - y : collator.compare(x, y);
+                    if (order === 0) {
+                        // ties keep a steady order, by item name
+                        order = collator.compare(sortValue(a, 0, "text"), sortValue(b, 0, "text"));
+                        return order;
+                    }
+                    return ascending ? order : -order;
+                });
+                rows.forEach(function (row) { body.appendChild(row); });
+            });
+        });
+    });
 })();

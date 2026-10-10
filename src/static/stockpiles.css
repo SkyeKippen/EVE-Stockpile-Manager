@@ -130,3 +130,75 @@
 .stock-short { color: var(--pending); font-weight: 600; }
 
 .count-note { margin-top: 8px; }
+
+/* Level: a bar that fills red to green as the stockpile fills, with the
+   percent of Wanted beside it */
+.level {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.level-bar {
+    position: relative;
+    width: 120px;
+    height: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--switch-off);
+}
+
+.level-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+.level-percent {
+    min-width: 3.5em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Sortable column headings: the arrow shows the current sort */
+.sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.sort-button:hover { color: var(--text); }
+
+.sort-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+th[data-sort] .sort-button::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    opacity: 0;
+}
+
+th[aria-sort="ascending"] .sort-button::after {
+    border-bottom: 5px solid currentColor;
+    opacity: 1;
+}
+
+th[aria-sort="descending"] .sort-button::after {
+    border-top: 5px solid currentColor;
+    opacity: 1;
+}

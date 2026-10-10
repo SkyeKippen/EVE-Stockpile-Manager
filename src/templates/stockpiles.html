@@ -46,13 +46,15 @@
                     <span role="cell" class="num">{{len .Items}}</span>
                 </summary>
                 <div class="stockpile-body">
-                    <table>
+                    <table class="sortable">
                         <thead>
                             <tr>
-                                <th>Item</th>
-                                <th>Type</th>
-                                <th class="num">Wanted</th>
-                                <th class="num" title="How many are at {{.Structure.Name}} now, in your hangars and your corporation's">In Station</th>
+                                <th data-sort="text" aria-sort="ascending">Item</th>
+                                <th data-sort="text">Type</th>
+                                <th class="num" data-sort="number">Wanted</th>
+                                <th class="num" data-sort="number" title="How many are at {{.Structure.Name}} now, in your hangars and your corporation's">In Station</th>
+                                <th class="num" data-sort="number" title="How many more are needed to reach Wanted">Missing</th>
+                                <th data-sort="number" title="How much of Wanted is in station">Level</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -60,17 +62,24 @@
                         {{$stockpileId := .StockpileId}}
                         {{range .Items}}
                             <tr>
-                                <td>
+                                <td data-sort-value="{{.Name}}">
                                     <span class="item-name">
                                         <img src="/image?category=types&id={{.TypeId}}&variation={{if eq .Kind $.KindRuns}}bp{{else}}icon{{end}}&size=64"
                                              alt="" width="32" height="32" loading="lazy">
                                         {{.Name}}
                                     </span>
                                 </td>
-                                <td>{{if eq .Kind $.KindRuns}}<span class="badge badge-kind badge-runs">Blueprint Runs</span>{{else}}<span class="badge badge-kind">Item</span>{{end}}</td>
-                                <td class="num">{{commaInt .Quantity}} <span class="unit">{{if eq .Kind $.KindRuns}}runs{{else}}units{{end}}</span></td>
+                                <td data-sort-value="{{if eq .Kind $.KindRuns}}Blueprint Runs{{else}}Item{{end}}">{{if eq .Kind $.KindRuns}}<span class="badge badge-kind badge-runs">Blueprint Runs</span>{{else}}<span class="badge badge-kind">Item</span>{{end}}</td>
+                                <td class="num" data-sort-value="{{.Quantity}}">{{commaInt .Quantity}} <span class="unit">{{if eq .Kind $.KindRuns}}runs{{else}}units{{end}}</span></td>
                                 <td class="num stock-count" data-count-key="{{$stockpileId}}-{{.TypeId}}" data-wanted="{{.Quantity}}"
                                     {{- if eq .Kind $.KindRuns}} data-runs{{end}}><span class="muted">Loading…</span></td>
+                                <td class="num missing-cell"><span class="muted">…</span></td>
+                                <td class="level-cell">
+                                    <span class="level" hidden>
+                                        <span class="level-bar"><span class="level-fill"></span></span>
+                                        <span class="level-percent"></span>
+                                    </span>
+                                </td>
                                 <td class="row-action">
                                     <form action="/stockpiles/items/remove" method="post">
                                         <input type="hidden" name="stockpile_id" value="{{$stockpileId}}">
@@ -80,7 +89,7 @@
                                 </td>
                             </tr>
                         {{else}}
-                            <tr><td class="empty" colspan="5">Nothing in this stockpile yet.</td></tr>
+                            <tr><td class="empty" colspan="7">Nothing in this stockpile yet.</td></tr>
                         {{end}}
                         </tbody>
                     </table>
