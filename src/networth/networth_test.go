@@ -34,8 +34,8 @@ func TestSellPricesAveragesCheapestFivePercent(t *testing.T) {
 func TestValueAssets(t *testing.T) {
 	items := []assets.Item{
 		{ItemId: 1, TypeId: 34, Name: "Tritanium", Quantity: 1000},
-		{ItemId: 2, TypeId: 688, Name: "Rifter Blueprint", Quantity: 1}, // copy
-		{ItemId: 3, TypeId: 688, Name: "Rifter Blueprint", Quantity: 1}, // original
+		{ItemId: 2, TypeId: 688, Name: "Raven Blueprint", Quantity: 1}, // copy
+		{ItemId: 3, TypeId: 688, Name: "Raven Blueprint", Quantity: 1}, // original
 		{ItemId: 4, TypeId: 99999, Name: "Unsold Thing", Quantity: 5},
 	}
 	prices := map[int64]float64{34: 4.5, 688: 1_000_000}
@@ -47,6 +47,25 @@ func TestValueAssets(t *testing.T) {
 	v = ValueAssets(items, nil, prices)
 	if v.Value != 4500 {
 		t.Errorf("with copies unknown, blueprints should count as 0: %+v", v)
+	}
+}
+
+func TestCapBlueprintPrices(t *testing.T) {
+	prices := map[int64]float64{34: 4.5, 688: 2_000_000_000, 691: 1_000_000}
+	capped := CapBlueprintPrices(prices, func(typeId int64) (bool, float64) {
+		switch typeId {
+		case 688:
+			return true, 1_135_000_000
+		case 691:
+			return true, 2_800_000
+		}
+		return false, 0
+	})
+	if capped[34] != 4.5 || capped[688] != 1_135_000_000 || capped[691] != 1_000_000 {
+		t.Errorf("capped = %v", capped)
+	}
+	if prices[688] != 2_000_000_000 {
+		t.Errorf("the original map was changed")
 	}
 }
 

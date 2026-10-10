@@ -52,3 +52,19 @@ func CopyIds(blueprints []assets.Blueprint) map[int64]bool {
 	}
 	return copies
 }
+
+// CapBlueprintPrices returns prices with each blueprint's price capped at
+// its NPC base price, since a blueprint original's cheapest Jita listings
+// are often far above what NPCs sell it for. blueprint reports whether a
+// type is a blueprint and its base price (0 when unknown, which leaves the
+// price as it is).
+func CapBlueprintPrices(prices map[int64]float64, blueprint func(typeId int64) (isBlueprint bool, basePrice float64)) map[int64]float64 {
+	capped := make(map[int64]float64, len(prices))
+	for typeId, price := range prices {
+		if isBlueprint, base := blueprint(typeId); isBlueprint && base > 0 && price > base {
+			price = base
+		}
+		capped[typeId] = price
+	}
+	return capped
+}

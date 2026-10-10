@@ -24,6 +24,9 @@ type Type struct {
 	// table has no category, so this goes by name: every published one ends
 	// in "Blueprint" or "Formula".
 	IsBlueprint bool `json:"isBlueprint"`
+	// BasePrice is the price NPCs sell the type for, where they do (e.g.
+	// blueprint originals); 0 when the SDE gives none.
+	BasePrice float64 `json:"-"`
 
 	lower string
 }
@@ -59,6 +62,7 @@ func load(path string) error {
 			Key       int64             `json:"_key"`
 			Name      map[string]string `json:"name"`
 			Published bool              `json:"published"`
+			BasePrice float64           `json:"basePrice"`
 		}
 		if err := json.Unmarshal(scanner.Bytes(), &raw); err != nil {
 			return fmt.Errorf("sde: parsing %s: %w", path, err)
@@ -71,6 +75,7 @@ func load(path string) error {
 			Id:          raw.Key,
 			Name:        name,
 			IsBlueprint: strings.HasSuffix(name, " Blueprint") || strings.HasSuffix(name, " Formula"),
+			BasePrice:   raw.BasePrice,
 			lower:       strings.ToLower(name),
 		}
 		byId[t.Id] = t

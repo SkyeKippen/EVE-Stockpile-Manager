@@ -5,6 +5,7 @@ import (
 	"Stockpile-Manager/src/auth"
 	"Stockpile-Manager/src/esi"
 	"Stockpile-Manager/src/networth"
+	"Stockpile-Manager/src/sde"
 	"context"
 	"errors"
 	"fmt"
@@ -182,6 +183,14 @@ func takeSnapshots(characters []auth.Character) {
 	}
 	if len(prices) == 0 {
 		log.Printf("net worth: no Jita prices yet, so assets aren't valued this hour")
+	}
+	if err := sde.Load(); err != nil {
+		log.Printf("net worth: blueprint prices aren't capped at their NPC price: %v", err)
+	} else {
+		prices = networth.CapBlueprintPrices(prices, func(typeId int64) (bool, float64) {
+			t, ok := sde.Get(typeId)
+			return ok && t.IsBlueprint, t.BasePrice
+		})
 	}
 
 	s := snapshot{ctx: ctx, takenAt: snapshotHour(time.Now()), prices: prices, done: map[string]bool{}}
