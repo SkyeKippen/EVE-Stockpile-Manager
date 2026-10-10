@@ -1,0 +1,58 @@
+/* Net Worth page: three headline numbers over a line chart. The line colors
+   come from the theme tokens, so they follow dark mode. */
+
+.page-head-actions { margin-top: 0; }
+
+.networth-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.key {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.key-net { background: var(--accent); }
+.key-wallet { background: var(--good); }
+.key-assets { background: var(--pending); }
+
+.networth-chart {
+    position: relative;
+    height: 420px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+    .networth-chart { height: 300px; }
+}

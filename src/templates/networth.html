@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{{template "head"}}
+    <link rel="stylesheet" href="/static/networth.css">
+</head>
+<body>
+
+{{template "header" "networth"}}
+
+<main class="page">
+    <div class="page-head">
+        <h2>Net Worth</h2>
+        {{if .Tracked}}
+        <div class="actions page-head-actions">
+            <form action="/networth/snapshot" method="post">
+                <button class="btn btn-secondary" type="submit"
+                        title="Read {{.CharacterName}}'s wallets and assets now, rather than waiting for the hourly snapshot">Snapshot now</button>
+            </form>
+        </div>
+        {{end}}
+    </div>
+
+    {{if not .Tracked}}
+    <p class="notice notice-bad">Net worth needs a database. Set <code>DATABASE_URL</code> in <code>config/.env</code>, run <code>tools/db/generate_networth_tables.sql</code> against it, then restart the server.</p>
+    {{else}}
+    {{if .Message}}<p class="notice notice-good" role="status">{{.Message}}</p>{{end}}
+    {{if .MissingScopes}}<p class="notice">Your sign-in can't read {{if eq (len .MissingScopes) 2}}your wallet or your corporation's wallets{{else if eq (index .MissingScopes 0) "esi-wallet.read_character_wallet.v1"}}your wallet{{else}}your corporation's wallets{{end}}. Add the wallet scopes to <code>ESI_SCOPES</code> in <code>config/.env</code> if they're missing, restart, then <a href="/auth/login">sign in again</a>.</p>{{end}}
+
+    <div class="networth-summary">
+        <div class="stat"><span class="stat-label"><i class="key key-net"></i>Net worth</span><span class="stat-value" id="stat-net">–</span></div>
+        <div class="stat"><span class="stat-label"><i class="key key-wallet"></i>Wallets</span><span class="stat-value" id="stat-wallet">–</span></div>
+        <div class="stat"><span class="stat-label"><i class="key key-assets"></i>Assets</span><span class="stat-value" id="stat-assets">–</span></div>
+    </div>
+
+    <section class="card">
+        {{if .Points}}
+        <div class="networth-chart"><canvas id="networth-chart" aria-label="Net worth, wallets and asset value over time"></canvas></div>
+        {{else}}
+        <p class="muted">No snapshots yet. They're taken a few minutes past every hour; use <strong>Snapshot now</strong> to take the first one.</p>
+        {{end}}
+        <p class="hint">Includes {{.CharacterName}}'s corporation when this character can read its assets or wallets (Director, or Accountant for wallets).
+            Assets are valued at the Jita 4-4 sell price{{if .PriceDate}} (prices from {{.PriceDate}}){{end}}: the average of the cheapest 5% of units listed. Items with no Jita sell orders and blueprint copies count as 0.</p>
+    </section>
+    {{end}}
+</main>
+
+<script id="networth-points" type="application/json">{{.Points}}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="/static/networth.js"></script>
+</body>
+</html>

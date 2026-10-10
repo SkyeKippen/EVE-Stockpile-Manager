@@ -51,6 +51,7 @@ func main() {
 		log.Printf("EVE sign-in disabled: %v", err)
 	}
 	initStockpiles()
+	initNetWorth()
 	auth.OnSignIn = refreshStructuresOnSignIn
 	// the SDE takes a few seconds to read, so start before anyone searches
 	go func() {
@@ -83,6 +84,8 @@ func main() {
 	http.HandleFunc("/stockpiles/counts", auth.RequireAuth(handleStockpileCounts))
 	http.HandleFunc("/stockpiles/item-suggestions", auth.RequireAuth(handleItemSuggestions))
 	http.HandleFunc("/stockpiles/structure-suggestions", auth.RequireAuth(handleStructureSuggestions))
+	http.HandleFunc("/networth", auth.RequireAuth(renderNetWorth))
+	http.HandleFunc("/networth/snapshot", auth.RequireAuth(handleNetWorthSnapshot))
 	http.HandleFunc("/api/assets", auth.RequireAuth(handleAssets))
 	http.HandleFunc("/api/structures", auth.RequireAuth(handleStructures))
 

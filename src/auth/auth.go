@@ -132,14 +132,16 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("evesso: reading scopes for character %d: %v", characterID, err)
 	}
-	tokens.save(esi.CharacterToken{
+	token := esi.CharacterToken{
 		CharacterID:   characterID,
 		CharacterName: characterName,
 		Scopes:        scopes,
 		AccessToken:   tok.AccessToken,
 		RefreshToken:  tok.RefreshToken,
 		ExpiresAt:     tok.ExpiresAt,
-	})
+	}
+	tokens.save(token)
+	persistToken(ctx, token)
 
 	if OnSignIn != nil {
 		go OnSignIn(characterID, characterName)
