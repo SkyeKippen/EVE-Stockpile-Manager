@@ -4,7 +4,8 @@
 --   networth.jita_prices      one sell price per item type per day: the
 --                             volume-weighted average of the cheapest 5% of
 --                             units listed in Jita 4-4 (PLEX from its global
---                             market)
+--                             market), capped at 3x CCP's average
+--                             traded price
 --   networth.asset_values     what a character's or corporation's assets were
 --                             worth each hour, at the latest Jita prices then
 --   networth.wallet_balances  a character's wallet, or the total of a

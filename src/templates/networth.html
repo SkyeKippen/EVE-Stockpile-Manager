@@ -40,7 +40,7 @@
         <p class="muted">No snapshots yet. They're taken a few minutes past every hour; use <strong>Snapshot now</strong> to take the first one.</p>
         {{end}}
         <p class="hint">Includes {{.CharacterName}}'s corporation when this character can read its assets or wallets (Director, or Accountant for wallets).
-            Assets are valued at the Jita 4-4 sell price{{if .PriceDate}} (prices from {{.PriceDate}}){{end}}: the average of the cheapest 5% of units listed. Blueprint originals are capped at their NPC price. Items with no Jita sell orders and blueprint copies count as 0.</p>
+            Assets are valued at the Jita 4-4 sell price{{if .PriceDate}} (prices from {{.PriceDate}}){{end}}: the average of the cheapest 5% of units listed, capped at 3× CCP's average traded price. Blueprint originals are capped at their NPC price. Items with no Jita sell orders and blueprint copies count as 0.</p>
     </section>
     {{end}}
 </main>

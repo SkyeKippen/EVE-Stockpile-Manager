@@ -92,6 +92,25 @@ feed:
 	return all, nil
 }
 
+// GetAveragePrices returns CCP's average traded price of each type, from
+// /markets/prices, keyed by type ID. Types with no average are left out.
+func (c *Client) GetAveragePrices(ctx context.Context) (map[int64]float64, error) {
+	var prices []struct {
+		TypeId       int64   `json:"type_id"`
+		AveragePrice float64 `json:"average_price"`
+	}
+	if _, err := c.do(ctx, "GET", esiBaseURL+"/markets/prices", "", nil, &prices); err != nil {
+		return nil, err
+	}
+	averages := make(map[int64]float64, len(prices))
+	for _, p := range prices {
+		if p.AveragePrice > 0 {
+			averages[p.TypeId] = p.AveragePrice
+		}
+	}
+	return averages, nil
+}
+
 // GetCharacterWallet needs the esi-wallet.read_character_wallet.v1 scope.
 func (c *Client) GetCharacterWallet(ctx context.Context, characterId int64, accessToken string) (float64, error) {
 	var balance float64

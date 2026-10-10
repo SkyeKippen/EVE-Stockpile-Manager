@@ -21,12 +21,16 @@ const (
 	// cheapestShare is how much of an item's sell volume its price is taken
 	// from: the average price of the cheapest 5% of units listed.
 	cheapestShare = 0.05
+	// averageCap caps a type's sell price at this many times CCP's average
+	// traded price, since a type with few sell orders can have only junk
+	// listings far above what it trades at.
+	averageCap = 3
 )
 
 // Price is one item type's Jita sell price for a day.
 type Price struct {
 	TypeId     int64
-	SellPrice  float64 // volume-weighted average of the cheapest 5% of units for sale
+	SellPrice  float64 // volume-weighted average of the cheapest 5% of units for sale, capped by averageCap
 	MinPrice   float64
 	Volume     int64 // units for sale
 	OrderCount int
@@ -45,7 +49,22 @@ func FetchJitaPrices(ctx context.Context, client *esi.Client) ([]Price, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetching PLEX sell orders: %w", err)
 	}
-	return SellPrices(append(jita, plex...)), nil
+	averages, err := client.GetAveragePrices(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fetching average prices: %w", err)
+	}
+	return CapAtAverage(SellPrices(append(jita, plex...)), averages), nil
+}
+
+// CapAtAverage caps each price at averageCap times the type's average traded
+// price. Types with no average are left as they are.
+func CapAtAverage(prices []Price, averages map[int64]float64) []Price {
+	for i, p := range prices {
+		if avg, ok := averages[p.TypeId]; ok && p.SellPrice > avg*averageCap {
+			prices[i].SellPrice = math.Round(avg*averageCap*100) / 100
+		}
+	}
+	return prices
 }
 
 // SellPrices combines each type's sell orders into one price: the

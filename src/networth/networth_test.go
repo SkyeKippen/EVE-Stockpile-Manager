@@ -31,6 +31,17 @@ func TestSellPricesAveragesCheapestFivePercent(t *testing.T) {
 	}
 }
 
+func TestCapAtAverage(t *testing.T) {
+	prices := CapAtAverage([]Price{
+		{TypeId: 21594, SellPrice: 64_000_000}, // junk listings only
+		{TypeId: 34, SellPrice: 3.89},
+		{TypeId: 99, SellPrice: 50}, // no average
+	}, map[int64]float64{21594: 9.36, 34: 3.73})
+	if prices[0].SellPrice != 28.08 || prices[1].SellPrice != 3.89 || prices[2].SellPrice != 50 {
+		t.Errorf("prices = %+v", prices)
+	}
+}
+
 func TestValueAssets(t *testing.T) {
 	items := []assets.Item{
 		{ItemId: 1, TypeId: 34, Name: "Tritanium", Quantity: 1000},
