@@ -21,12 +21,13 @@
         </div>
         <div class="actions">
             <a class="btn btn-primary" href="/stockpiles">Stockpiles</a>
+            <a class="btn btn-secondary" href="/networth">Net Worth</a>
             <form action="/auth/logout" method="post">
                 <button class="btn btn-secondary" type="submit">Log out</button>
             </form>
         </div>
     {{else if .SSOConfigured}}
-        <p class="muted">Sign in with your EVE Online character to manage your stockpiles. EVE will ask you to allow the app to read your assets, industry jobs, market orders and structures, for your character and corporation.</p>
+        <p class="muted">Sign in with your EVE Online character to manage your stockpiles. EVE will ask you to allow the app to read your assets, wallets, industry jobs, market orders and structures, for your character and corporation.</p>
         {{template "sso-login"}}
     {{else}}
         <p class="muted">EVE Online sign-in isn't set up yet. Copy <code>config/.env.example</code> to <code>config/.env</code>, fill in your EVE developer app details, then restart the server.</p>
