@@ -74,6 +74,10 @@ func main() {
 	})))
 
 	http.HandleFunc("/", renderBase)
+	// browsers ask for /favicon.ico on pages that don't name an icon, like errors
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(staticDir, "favicon.ico"))
+	})
 	http.HandleFunc("/image", handleImage)
 	http.HandleFunc("/stockpiles", auth.RequireAuth(renderStockpiles))
 	http.HandleFunc("/stockpiles/create", auth.RequireAuth(handleCreateStockpile))
