@@ -171,6 +171,9 @@
                 if (!data.characterAssets) notes.push("Your own assets couldn't be read from ESI, so they aren't counted.");
                 if (!data.corpAssets) notes.push("Your corporation's assets couldn't be read (that needs the Director role), so only your own are counted.");
                 if (anyRuns && !data.characterBlueprints) notes.push("Your own blueprints couldn't be read (that needs the esi-characters.read_blueprints.v1 scope), so their runs aren't counted.");
+                if (data.pricesStatus === "fetching") notes.push("Jita prices are being fetched now, so some values are missing. Reload in a minute or two.");
+                if (data.pricesStatus === "unavailable") notes.push("Values need Jita prices, which need the net worth tables in the database (see the server log).");
+                if (data.pricesStatus === "error") notes.push("Jita prices couldn't be read from the database, so values are missing.");
                 if (anyRuns && !data.corpBlueprints) notes.push("Your corporation's blueprints couldn't be read (that needs the esi-corporations.read_blueprints.v1 scope and the Director role), so their runs aren't counted.");
                 document.querySelectorAll(".count-note").forEach(function (note) {
                     note.textContent = notes.join(" ");

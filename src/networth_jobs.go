@@ -30,6 +30,10 @@ const (
 	// hour itself, so every owner's readings line up on the graph
 	snapshotMinute = 5
 
+	// prices fetched within priceFreshFor aren't fetched again at startup
+	// or for stockpile items with no price
+	priceFreshFor     = time.Hour
+	priceRetryAfter   = 15 * time.Minute
 	priceFetchTimeout = 20 * time.Minute
 	snapshotTimeout   = 30 * time.Minute
 )
@@ -72,23 +76,77 @@ func initNetWorth() {
 }
 
 func runNetWorthJobs() {
-	// catch up first: today's prices if they're missing, then a snapshot for
+	go every(nextDaily, func() { fetchPricesOrRetry("daily") })
+
+	// catch up first: prices if they're over an hour old, then a snapshot for
 	// this hour, so the first snapshot after a long break has prices to use
-	if err := fetchPricesIfMissing(); err != nil {
-		log.Printf("net worth: fetching Jita prices: %v", err)
-	}
+	fetchPricesIfStale()
 	if last, err := netWorth.LastSnapshot(context.Background()); err != nil {
 		log.Printf("net worth: reading last snapshot: %v", err)
 	} else if last.Before(snapshotHour(time.Now())) {
 		takeSnapshots(nil)
 	}
+	every(nextHourly, func() { takeSnapshots(nil) })
+}
 
-	go every(nextDaily, func() {
+// fetchPricesIfStale fetches prices when the newest were fetched over
+// priceFreshFor ago, or never.
+func fetchPricesIfStale() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	last, err := netWorth.LastPriceFetch(ctx)
+	if err != nil {
+		log.Printf("net worth: reading when Jita prices were last fetched: %v; fetching them now", err)
+	} else if last.IsZero() {
+		log.Printf("net worth: no Jita prices saved yet; fetching them now")
+	} else if age := time.Since(last); age > priceFreshFor {
+		log.Printf("net worth: Jita prices were last fetched %s ago; fetching them now", age.Round(time.Minute))
+	} else {
+		log.Printf("net worth: Jita prices were fetched %s ago, so they're current", age.Round(time.Minute))
+		return
+	}
+	fetchPricesOrRetry("startup")
+}
+
+// fetchPricesOrRetry fetches prices, and on failure tries again every
+// priceRetryAfter until it works, rather than waiting for the next day.
+func fetchPricesOrRetry(why string) {
+	for {
+		err := fetchPrices()
+		if err == nil {
+			return
+		}
+		log.Printf("net worth: %s Jita price fetch failed, retrying in %s: %v", why, priceRetryAfter, err)
+		time.Sleep(priceRetryAfter)
+	}
+}
+
+// fetchMissingPrices starts a price fetch in the background when some of
+// typeIds have no price, unless a fetch was tried within priceFreshFor (types
+// with no Jita sell orders never get a price, so they'd otherwise fetch on
+// every page load). It reports whether a fetch is running.
+func fetchMissingPrices(typeIds []int64, prices map[int64]float64) bool {
+	missing := 0
+	for _, id := range typeIds {
+		if _, ok := prices[id]; !ok {
+			missing++
+		}
+	}
+	if missing == 0 {
+		return priceFetchRunning()
+	}
+	priceFetch.mu.Lock()
+	defer priceFetch.mu.Unlock()
+	if priceFetch.running || time.Since(priceFetch.lastTried) < priceFreshFor {
+		return priceFetch.running
+	}
+	log.Printf("net worth: %d stockpile item types have no Jita price; fetching prices now", missing)
+	go func() {
 		if err := fetchPrices(); err != nil {
 			log.Printf("net worth: fetching Jita prices: %v", err)
 		}
-	})
-	every(nextHourly, func() { takeSnapshots(nil) })
+	}()
+	return true
 }
 
 // every runs job each time next says, forever.
@@ -133,17 +191,41 @@ func priceDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
-func fetchPricesIfMissing() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	have, err := netWorth.HasPrices(ctx, priceDay(time.Now()))
-	if err != nil || have {
-		return err
-	}
-	return fetchPrices()
+// priceFetch tracks the price fetch, so only one runs at a time.
+var priceFetch struct {
+	mu        sync.Mutex
+	running   bool
+	lastTried time.Time
+	done      chan struct{} // closed when the running fetch ends
 }
 
+func priceFetchRunning() bool {
+	priceFetch.mu.Lock()
+	defer priceFetch.mu.Unlock()
+	return priceFetch.running
+}
+
+// fetchPrices fetches and saves the day's Jita prices. If a fetch is already
+// running, it waits for that one instead.
 func fetchPrices() error {
+	priceFetch.mu.Lock()
+	if priceFetch.running {
+		done := priceFetch.done
+		priceFetch.mu.Unlock()
+		<-done
+		return nil
+	}
+	priceFetch.running, priceFetch.lastTried = true, time.Now()
+	priceFetch.done = make(chan struct{})
+	priceFetch.mu.Unlock()
+	defer func() {
+		priceFetch.mu.Lock()
+		priceFetch.running = false
+		close(priceFetch.done)
+		priceFetch.mu.Unlock()
+	}()
+
+	log.Printf("net worth: fetching Jita prices")
 	ctx, cancel := context.WithTimeout(context.Background(), priceFetchTimeout)
 	defer cancel()
 	start := time.Now()

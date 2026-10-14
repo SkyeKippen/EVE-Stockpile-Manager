@@ -25,11 +25,15 @@ type PgStore struct {
 	Pool *pgxpool.Pool
 }
 
-// HasPrices reports whether prices were saved for day (a UTC date).
-func (p *PgStore) HasPrices(ctx context.Context, day time.Time) (bool, error) {
-	var exists bool
-	err := p.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM networth.jita_prices WHERE price_date = $1)`, day).Scan(&exists)
-	return exists, err
+// LastPriceFetch returns when the newest prices were fetched, or the zero
+// time when there are none.
+func (p *PgStore) LastPriceFetch(ctx context.Context) (time.Time, error) {
+	var last *time.Time
+	err := p.Pool.QueryRow(ctx, `SELECT max(fetched_at) FROM networth.jita_prices`).Scan(&last)
+	if err != nil || last == nil {
+		return time.Time{}, err
+	}
+	return *last, nil
 }
 
 // SavePrices saves day's prices, replacing any already saved for that day.
