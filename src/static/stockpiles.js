@@ -69,6 +69,43 @@
         showProgress(cell, Math.max(wanted - count, 0), unitText, wanted > 0 ? count / wanted : 1);
     }
 
+    // 1234567890 -> "1.23b"
+    function shortIsk(v) {
+        const units = [[1e12, "t"], [1e9, "b"], [1e6, "m"], [1e3, "k"]];
+        for (const [size, suffix] of units) {
+            if (Math.abs(v) >= size) return (v / size).toFixed(2) + suffix;
+        }
+        return v.toFixed(2);
+    }
+
+    // Shows an ISK value, or a dash with emptyTitle when value is null.
+    function showValue(cell, value, emptyTitle) {
+        if (value === null) {
+            const dash = document.createElement("span");
+            dash.className = "muted";
+            dash.textContent = "—";
+            cell.replaceChildren(dash);
+            cell.title = emptyTitle;
+            cell.dataset.sortValue = -1; // below a value of 0
+            return;
+        }
+        cell.textContent = shortIsk(value) + " ";
+        const unit = document.createElement("span");
+        unit.className = "unit";
+        unit.textContent = "ISK";
+        cell.appendChild(unit);
+        cell.title = value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ISK";
+        cell.dataset.sortValue = value;
+    }
+
+    // Fills in the Stockpile Value and Missing Value cells at the Jita sell
+    // price, or dashes when there's no price.
+    function showValues(row, count, missing, price, emptyTitle) {
+        const priced = typeof price === "number";
+        showValue(row.querySelector(".stock-value"), priced ? count * price : null, emptyTitle);
+        showValue(row.querySelector(".missing-value"), priced ? missing * price : null, emptyTitle);
+    }
+
     // Fills in the Missing and Level cells next to an In Station cell.
     // fraction is how much of Wanted is in station; the bar stops at full,
     // but the percent shows any extra, e.g. 130%.
@@ -117,12 +154,18 @@
                             // an original outranks any number of runs
                             cell.dataset.sortValue = Number.MAX_SAFE_INTEGER;
                             showProgress(cell, 0, "runs", 1);
+                            showValues(cell.closest("tr"), 0, 0, null, "Blueprint runs aren't valued");
                             return;
                         }
                         showCount(cell, found.runs, "runs", wanted);
+                        showValues(cell.closest("tr"), 0, 0, null, "Blueprint runs aren't valued");
                         return;
                     }
-                    showCount(cell, data.counts[cell.dataset.countKey] || 0, "units", wanted);
+                    const count = data.counts[cell.dataset.countKey] || 0;
+                    showCount(cell, count, "units", wanted);
+                    const typeId = cell.dataset.countKey.split("-")[1];
+                    showValues(cell.closest("tr"), count, Math.max(wanted - count, 0), (data.prices || {})[typeId],
+                        "No Jita sell price for this item");
                 });
                 const notes = [];
                 if (!data.characterAssets) notes.push("Your own assets couldn't be read from ESI, so they aren't counted.");
@@ -141,7 +184,9 @@
                     unavailable.title = "Couldn't read assets from ESI. Reload to try again.";
                     unavailable.textContent = "Unavailable";
                     cell.replaceChildren(unavailable);
-                    cell.closest("tr").querySelector(".missing-cell").textContent = "";
+                    cell.closest("tr").querySelectorAll(".missing-cell, .value-cell").forEach(function (c) {
+                        c.textContent = "";
+                    });
                 });
             });
     }

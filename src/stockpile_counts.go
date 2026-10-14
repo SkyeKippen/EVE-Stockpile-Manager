@@ -89,10 +89,35 @@ func handleStockpileCounts(w http.ResponseWriter, r *http.Request) {
 		CorpAssets          bool                   `json:"corpAssets"`
 		CharacterBlueprints bool                   `json:"characterBlueprints"`
 		CorpBlueprints      bool                   `json:"corpBlueprints"`
+		Prices              map[int64]float64      `json:"prices"` // Jita sell price of items, by type ID
 	}{
 		counts, runsAtStructures(list, characterBlueprints, corpBlueprints),
 		characterErr == nil, corpErr == nil, characterBpErr == nil, corpBpErr == nil,
+		stockpilePrices(ctx, list),
 	})
+}
+
+// stockpilePrices returns the latest Jita sell price of each item the
+// stockpiles want (not blueprint runs), priced the same way as net worth.
+// Items with no Jita price are left out; with no database, all of them are.
+func stockpilePrices(ctx context.Context, list []stockpile.Stockpile) map[int64]float64 {
+	if netWorth == nil {
+		return map[int64]float64{}
+	}
+	var typeIds []int64
+	for _, s := range list {
+		for _, item := range s.Items {
+			if item.Kind == stockpile.KindItem {
+				typeIds = append(typeIds, item.TypeId)
+			}
+		}
+	}
+	prices, err := netWorth.LatestPricesFor(ctx, typeIds)
+	if err != nil {
+		log.Printf("handleStockpileCounts: prices: %v", err)
+		return map[int64]float64{}
+	}
+	return capBlueprintPrices(prices)
 }
 
 // countAtStructures counts, for each item a stockpile wants, how many of it

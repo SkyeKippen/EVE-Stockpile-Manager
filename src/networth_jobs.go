@@ -184,19 +184,24 @@ func takeSnapshots(characters []auth.Character) {
 	if len(prices) == 0 {
 		log.Printf("net worth: no Jita prices yet, so assets aren't valued this hour")
 	}
-	if err := sde.Load(); err != nil {
-		log.Printf("net worth: blueprint prices aren't capped at their NPC price: %v", err)
-	} else {
-		prices = networth.CapBlueprintPrices(prices, func(typeId int64) (bool, float64) {
-			t, ok := sde.Get(typeId)
-			return ok && t.IsBlueprint, t.BasePrice
-		})
-	}
+	prices = capBlueprintPrices(prices)
 
 	s := snapshot{ctx: ctx, takenAt: snapshotHour(time.Now()), prices: prices, done: map[string]bool{}}
 	for _, c := range characters {
 		s.character(c)
 	}
+}
+
+// capBlueprintPrices caps blueprint prices at their NPC price, using the SDE.
+func capBlueprintPrices(prices map[int64]float64) map[int64]float64 {
+	if err := sde.Load(); err != nil {
+		log.Printf("net worth: blueprint prices aren't capped at their NPC price: %v", err)
+		return prices
+	}
+	return networth.CapBlueprintPrices(prices, func(typeId int64) (bool, float64) {
+		t, ok := sde.Get(typeId)
+		return ok && t.IsBlueprint, t.BasePrice
+	})
 }
 
 // snapshot is one hour's run over the characters.

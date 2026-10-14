@@ -55,6 +55,8 @@
                                 <th class="num" data-sort="number" title="How many are at {{.Structure.Name}} now, in your hangars and your corporation's">In Station</th>
                                 <th class="num" data-sort="number" title="How many more are needed to reach Wanted">Missing</th>
                                 <th data-sort="number" title="How much of Wanted is in station">Level</th>
+                                <th class="num" data-sort="number" title="What In Station is worth at the Jita sell price">Stockpile Value</th>
+                                <th class="num" data-sort="number" title="What Missing would cost at the Jita sell price">Missing Value</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -80,6 +82,8 @@
                                         <span class="level-percent"></span>
                                     </span>
                                 </td>
+                                <td class="num value-cell stock-value"><span class="muted">…</span></td>
+                                <td class="num value-cell missing-value"><span class="muted">…</span></td>
                                 <td class="row-action">
                                     <form action="/stockpiles/items/remove" method="post">
                                         <input type="hidden" name="stockpile_id" value="{{$stockpileId}}">
@@ -89,7 +93,7 @@
                                 </td>
                             </tr>
                         {{else}}
-                            <tr><td class="empty" colspan="7">Nothing in this stockpile yet.</td></tr>
+                            <tr><td class="empty" colspan="9">Nothing in this stockpile yet.</td></tr>
                         {{end}}
                         </tbody>
                     </table>

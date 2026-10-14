@@ -78,6 +78,27 @@ func (p *PgStore) LatestPrices(ctx context.Context) (map[int64]float64, error) {
 	return prices, err
 }
 
+// LatestPricesFor is LatestPrices for just typeIds. Types with no saved
+// price are left out.
+func (p *PgStore) LatestPricesFor(ctx context.Context, typeIds []int64) (map[int64]float64, error) {
+	rows, err := p.Pool.Query(ctx, `
+		SELECT DISTINCT ON (type_id) type_id, sell_price::float8
+		FROM networth.jita_prices
+		WHERE type_id = ANY($1)
+		ORDER BY type_id, price_date DESC`, typeIds)
+	if err != nil {
+		return nil, err
+	}
+	prices := map[int64]float64{}
+	var typeId int64
+	var price float64
+	_, err = pgx.ForEachRow(rows, []any{&typeId, &price}, func() error {
+		prices[typeId] = price
+		return nil
+	})
+	return prices, err
+}
+
 // SaveAssetValue records what owner's assets were worth at takenAt,
 // replacing a value already recorded for that time.
 func (p *PgStore) SaveAssetValue(ctx context.Context, owner Owner, takenAt time.Time, v Valuation) error {
